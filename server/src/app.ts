@@ -30,6 +30,10 @@ app.use('/api/documents', documentRoutes);
 app.use('/api/tickets', ticketRoutes);
 
 // Health check endpoint
+app.get('/', (req, res) => {
+  res.json({ status: 'ok', message: 'AICS Backend API is running', health: '/api/health' });
+});
+
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });

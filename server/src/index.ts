@@ -45,7 +45,7 @@ io.on('connection', (socket) => {
   });
 });
 
-server.listen(config.port, async () => {
+server.listen(config.port, '0.0.0.0', async () => {
   console.log(`🚀 WA CS Agent Server is running on http://localhost:${config.port}`);
 
   try {
