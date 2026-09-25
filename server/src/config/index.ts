@@ -17,7 +17,6 @@ export const config = {
   mineruApiToken: process.env.MINERU_API_TOKEN || '',
   jinaApiKey: process.env.JINA_API_KEY || '',
   jinaModel: process.env.JINA_MODEL || 'jina-embeddings-v3',
-  chromePath: process.env.CHROME_PATH || 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
   frontendUrl: process.env.FRONTEND_URL || 'http://localhost:5173',
   jwtSecret: process.env.JWT_SECRET || 'wa-agent-super-secret-jwt-key-2026',
 };
