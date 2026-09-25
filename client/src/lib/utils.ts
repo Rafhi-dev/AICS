@@ -22,3 +22,11 @@ export function formatDateTime(dateStr: string | Date): string {
     minute: '2-digit',
   });
 }
+
+export function getFileUrl(url: string | null | undefined): string {
+  if (!url) return '';
+  if (url.startsWith('http://') || url.startsWith('https://')) return url;
+  const baseUrl = import.meta.env.VITE_API_URL ? String(import.meta.env.VITE_API_URL).replace(/\/$/, '') : '';
+  return `${baseUrl}${url}`;
+}
+

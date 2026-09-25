@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../lib/api';
+import { getFileUrl } from '../lib/utils';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from './ui/Card';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
@@ -311,7 +312,7 @@ export const DocumentKnowledge: React.FC<DocumentKnowledgeProps> = ({
                   {isImage && doc.fileUrl && (
                     <div className="relative h-36 w-full bg-slate-100 overflow-hidden border-b border-slate-100">
                       <img
-                        src={doc.fileUrl}
+                        src={getFileUrl(doc.fileUrl)}
                         alt={doc.title}
                         className="h-full w-full object-cover"
                         onError={(e) => {
@@ -404,7 +405,7 @@ export const DocumentKnowledge: React.FC<DocumentKnowledgeProps> = ({
                     )}
                     {doc.fileUrl && (
                       <a
-                        href={doc.fileUrl}
+                        href={getFileUrl(doc.fileUrl)}
                         target="_blank"
                         rel="noreferrer"
                         className="inline-flex items-center text-[10px] text-indigo-600 hover:text-indigo-800 font-medium"
