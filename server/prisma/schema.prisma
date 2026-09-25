@@ -1,0 +1,180 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  ADMIN
+  USER
+}
+
+model User {
+  id                String    @id @default(cuid())
+  name              String
+  username          String?   @unique
+  email             String    @unique
+  password          String
+  role              Role      @default(USER)
+  tokenVersion      Int       @default(0)
+  waConnectedNumber String?
+  activeUntil       DateTime? // Tanggal batas aktif akun (null = tidak terbatas/unlimited)
+  deletedAt         DateTime? // Soft-delete flag for audit
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  botConfig      BotConfig?
+  contacts       Contact[]
+  conversations  Conversation[]
+  documents      DocumentKnowledge[]
+  knowledgeItems KnowledgeItem[]
+  tickets        Ticket[]
+}
+
+model BotConfig {
+  id               String   @id @default(cuid())
+  userId           String?  @unique
+  user             User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  businessName     String   @default("Layanan Pelanggan AI")
+  systemPrompt     String   @default("Anda adalah Asisten Customer Service (CS) AI yang ramah, profesional, sopan, dan sangat membantu. Tugas Anda adalah menyapa pelanggan, menjawab pertanyaan seputar layanan dan produk berdasarkan informasi yang tersedia, serta memberikan solusi terbaik secara singkat, jelas, dan santun. Jika tidak mengetahui jawaban spesifik, sarankan pelanggan menunggu agen manusia kami.")
+  botMode          String   @default("CUSTOMER_SERVICE") // "CUSTOMER_SERVICE" | "PERSONAL_ASSISTANT"
+  ownerName        String   @default("Pemilik")
+  paInstructions   String   @default("Anda adalah sekretaris pribadi profesional dari Pemilik. Anda berbicara atas nama beliau dengan sopan, santun, ramah, dan terstruktur. Tugas Anda adalah menyapa siapa pun yang menghubungi nomor ini, menjelaskan bahwa beliau sedang sibuk/ada agenda penting, menanyakan keperluan mereka dengan detail, mencatat pesan titipan, serta memberikan informasi ketersediaan atau catatan yang relevan.")
+  autoReplyEnabled Boolean  @default(true)
+  aiProvider       String   @default("DEEPSEEK") // "DEEPSEEK" | "GEMINI"
+  deepseekApiKey   String?  @default("")
+  deepseekModel    String?  @default("deepseek-chat")
+  mineruApiToken   String?  @default("")
+  jinaApiKey       String?  @default("")
+  jinaModel        String?  @default("jina-embeddings-v3")
+  geminiApiKey     String?  @default("")
+  geminiModel      String?  @default("gemini-3.5-flash-lite")
+  temperature      Float    @default(0.2)
+  maxTokens        Int      @default(800)
+  updatedAt        DateTime @updatedAt
+}
+
+model Contact {
+  id            String         @id @default(cuid())
+  userId        String?
+  user          User?          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  waId          String
+  name          String?
+  pushName      String?
+  phone         String?
+  isAiActive    Boolean        @default(true)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  conversations Conversation[]
+
+  @@unique([userId, waId])
+}
+
+model Conversation {
+  id            String    @id @default(cuid())
+  userId        String?
+  user          User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  contactId     String
+  contact       Contact   @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  status        String    @default("OPEN")
+  lastMessageAt DateTime  @default(now())
+  deletedAt     DateTime? // Soft-delete flag for audit log
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  messages      Message[]
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  waMessageId    String?
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender         String       // "CUSTOMER" | "BOT" | "AGENT"
+  text           String
+  mediaUrl       String?      // Image/PDF file path or URL if sent
+  mediaType      String?      // "IMAGE" | "PDF"
+  isRead         Boolean      @default(false)
+  deletedAt      DateTime?    // Soft-delete flag
+  createdAt      DateTime     @default(now())
+}
+
+model KnowledgeItem {
+  id        String   @id @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category  String   @default("Umum")
+  question  String
+  answer    String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model DocumentKnowledge {
+  id             String          @id @default(cuid())
+  userId         String?
+  user           User?           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title          String
+  category       String          @default("Umum")
+  description    String?
+  content        String          // Text content extracted from PDF or manual notes
+  keywords       String[]        // Tag kata kunci untuk pencocokan pintar (e.g. ["brosur", "harga", "wedding"])
+  fileUrl        String?         // Relative path to uploaded file (e.g. /uploads/123-brochure.png)
+  fileName       String?         // Original file name
+  fileType       String?         // "IMAGE" | "PDF" | "TEXT"
+  canSendAsMedia Boolean         @default(true) // If true, bot can automatically attach this file when requested
+  isActive       Boolean         @default(true)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  chunks         DocumentChunk[]
+}
+
+model DocumentChunk {
+  id         String            @id @default(cuid())
+  documentId String
+  document   DocumentKnowledge @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  userId     String?
+  chunkIndex Int
+  content    String            // Potongan teks dokumen untuk konteks RAG
+  embedding  Float[]           // Vektor embedding 768-dim dari Google text-embedding-004
+  createdAt  DateTime          @default(now())
+
+  @@index([documentId])
+  @@index([userId])
+}
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+model Ticket {
+  id           String          @id @default(cuid())
+  ticketNumber String          @unique // Contoh: TIK-892145
+  userId       String
+  user         User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subject      String
+  category     String          @default("BANTUAN") // "PERPANJANGAN" | "TEKNIS" | "BANTUAN"
+  status       TicketStatus    @default(OPEN)
+  priority     String          @default("MEDIUM")  // "LOW" | "MEDIUM" | "HIGH"
+  messages     TicketMessage[]
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+}
+
+model TicketMessage {
+  id         String   @id @default(cuid())
+  ticketId   String
+  ticket     Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  senderId   String
+  senderName String
+  senderRole String   // "ADMIN" | "USER"
+  message    String
+  createdAt  DateTime @default(now())
+}
+
