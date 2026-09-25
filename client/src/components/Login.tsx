@@ -36,10 +36,16 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
       }
     } catch (err: any) {
       console.error('Login error:', err);
-      setError(
-        err.response?.data?.error ||
-          'Gagal masuk. Periksa kembali email/username dan password Anda.'
-      );
+      if (!err.response) {
+        setError(
+          'Tidak dapat terhubung ke server backend (Network / Timeout Error). Pastikan backend di Railway sudah aktif dan berjalan normal.'
+        );
+      } else {
+        setError(
+          err.response?.data?.error ||
+            'Gagal masuk. Periksa kembali email/username dan password Anda.'
+        );
+      }
     } finally {
       setLoading(false);
     }
